@@ -42,6 +42,14 @@ const mockData: { [key: string]: Day[] } = {
 
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+const currencySymbols: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  INR: '₹',
+  GBP: '£',
+  JPY: '¥',
+};
+
 function parseProfit(profit: string) {
   // Remove $ and commas, handle negatives and k (thousands)
   if (!profit) return 0;
@@ -69,7 +77,7 @@ function getSmoothPath(points: {x: number, y: number}[]) {
   return d;
 }
 
-function PerformanceChart({ days }: { days: Day[] }) {
+function PerformanceChart({ days, currency }: { days: Day[]; currency: string }) {
   const [hoverIdx, setHoverIdx] = React.useState<number | null>(null);
   const [mouse, setMouse] = React.useState<{x: number, y: number} | null>(null);
   if (!days.length) return <div className="h-40 w-full bg-muted rounded flex items-center justify-center text-muted-foreground">No data</div>;
@@ -118,6 +126,23 @@ function PerformanceChart({ days }: { days: Day[] }) {
   function handleMouseLeave() {
     setHoverIdx(null);
     setMouse(null);
+  }
+
+  function formatProfitTooltip(profit: string) {
+    if (!profit) return '';
+    let p = profit.replace(/[$,+]/g, "");
+    let mult = 1;
+    if (p.includes("-")) mult = -1;
+    p = p.replace("-", "");
+    let value = 0;
+    if (p.toLowerCase().includes("k")) {
+      p = p.replace(/k/i, "");
+      value = mult * parseFloat(p) * 1000;
+    } else {
+      value = mult * parseFloat(p);
+    }
+    if (isNaN(value)) return '';
+    return `${currencySymbols[currency]}${value.toLocaleString()}`;
   }
 
   return (
@@ -176,7 +201,7 @@ function PerformanceChart({ days }: { days: Day[] }) {
             }}
           >
             <div className="font-semibold">{days[hoverIdx].date}</div>
-            <div>P&amp;L: <span className="font-mono">{days[hoverIdx].profit}</span></div>
+            <div>P&amp;L: <span className="font-mono">{formatProfitTooltip(days[hoverIdx].profit)}</span></div>
             <div>Trades: {days[hoverIdx].trades}</div>
           </div>
         )}
@@ -191,6 +216,7 @@ export default function ReportsPage() {
     year: today.getFullYear(),
     month: today.getMonth(),
   });
+  const [currency, setCurrency] = React.useState('USD');
   const monthKey = `${view.year}-${String(view.month + 1).padStart(2, "0")}`;
   const days = mockData[monthKey] || [];
 
@@ -209,6 +235,25 @@ export default function ReportsPage() {
     });
   }
 
+  // Helper to format profit with selected currency
+  function formatProfit(profit: string) {
+    // Remove $ and commas, handle negatives and k (thousands)
+    if (!profit) return '';
+    let p = profit.replace(/[$,+]/g, "");
+    let mult = 1;
+    if (p.includes("-")) mult = -1;
+    p = p.replace("-", "");
+    let value = 0;
+    if (p.toLowerCase().includes("k")) {
+      p = p.replace(/k/i, "");
+      value = mult * parseFloat(p) * 1000;
+    } else {
+      value = mult * parseFloat(p);
+    }
+    if (isNaN(value)) return '';
+    return `${currencySymbols[currency]}${value.toLocaleString()}`;
+  }
+
   return (
     <div className="w-full px-8 py-6">
       {/* Month row with navigation */}
@@ -218,15 +263,27 @@ export default function ReportsPage() {
         <button onClick={() => changeMonth(1)} className="rounded border px-2 py-1">&#8594;</button>
       </div>
 
+      {/* Currency selector */}
+      <div className="mb-4 flex items-center gap-2">
+        <label className="text-sm font-medium">Currency:</label>
+        <select value={currency} onChange={e=>setCurrency(e.target.value)} className="rounded bg-secondary dark:bg-zinc-800 px-2 py-1 text-sm dark:text-zinc-100">
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="INR">INR (₹)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="JPY">JPY (¥)</option>
+        </select>
+      </div>
+
       {/* Daily cards */}
       <div className="flex gap-3 overflow-x-auto pb-2 mb-5">
         {days.length > 0 ? (
           days.map((day: Day, idx: number) => (
-          <div key={day.date} className={`min-w-[140px] rounded-xl border bg-card px-4 py-3 flex flex-col gap-2 shadow-sm ${day.disabled?'opacity-40 pointer-events-none':''}`}>
-            <div className="text-sm font-semibold">{day.date}</div>
-            <div className={`text-lg font-bold ${day.color}`}>{day.profit}</div>
-            <div className="text-xs text-muted-foreground">{day.trades} trades</div>
-          </div>
+            <div key={day.date} className={`min-w-[140px] rounded-xl border bg-card px-4 py-3 flex flex-col gap-2 shadow-sm ${day.disabled?'opacity-40 pointer-events-none':''}`}>
+              <div className="text-sm font-semibold">{day.date}</div>
+              <div className={`text-lg font-bold ${day.color}`}>{formatProfit(day.profit)}</div>
+              <div className="text-xs text-muted-foreground">{day.trades} trades</div>
+            </div>
           ))
         ) : (
           <div className="text-muted-foreground">No data for this month.</div>
@@ -260,7 +317,7 @@ export default function ReportsPage() {
       <div className="mb-6">
         <div className="font-semibold mb-2">This month's performance chart</div>
         <div className="rounded-xl bg-card border shadow-sm px-6 py-6">
-          <PerformanceChart days={days} />
+          <PerformanceChart days={days} currency={currency} />
         </div>
       </div>
     </div>
