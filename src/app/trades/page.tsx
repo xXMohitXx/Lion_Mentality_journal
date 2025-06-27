@@ -1,6 +1,14 @@
 'use client';
 import React from "react";
 
+const currencySymbols: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  INR: '₹',
+  GBP: '£',
+  JPY: '¥',
+};
+
 export default function TradesPage() {
   const [stock, setStock] = React.useState("");
   const [entry, setEntry] = React.useState("");
@@ -12,6 +20,7 @@ export default function TradesPage() {
   const [dateStr, setDateStr] = React.useState('');
   const [timeStr, setTimeStr] = React.useState('');
   const [trades, setTrades] = React.useState<any[]>([]);
+  const [currency, setCurrency] = React.useState('USD');
 
   React.useEffect(() => {
     const now = new Date();
@@ -24,8 +33,8 @@ export default function TradesPage() {
     const x = parseFloat(exit);
     const q = parseFloat(qty);
     if (isNaN(e) || isNaN(x) || isNaN(q)) return "-";
-    if (type === "long") return (q * (x - e)).toFixed(2);
-    return (q * (e - x)).toFixed(2);
+    if (type === "long") return `${currencySymbols[currency]}${(q * (x - e)).toFixed(2)}`;
+    return `${currencySymbols[currency]}${(q * (e - x)).toFixed(2)}`;
   }
 
   function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,6 +56,7 @@ export default function TradesPage() {
       date: dateStr,
       time: timeStr,
       imgUrl,
+      currency,
     }, ...trades]);
     setStock(""); setEntry(""); setExit(""); setQty(""); setImage(null); setImgUrl(null);
   }
@@ -99,6 +109,16 @@ export default function TradesPage() {
             <label className="block text-sm font-medium mb-1 dark:text-zinc-200">Chart Image</label>
             <input type="file" accept="image/*" onChange={handleImage} className="block w-full text-sm" />
             {imgUrl && <img src={imgUrl} alt="Chart" className="mt-2 rounded max-h-40" />}
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1 dark:text-zinc-200">Currency</label>
+            <select value={currency} onChange={e=>setCurrency(e.target.value)} className="w-full rounded bg-secondary dark:bg-zinc-800 px-3 py-2 text-sm dark:text-zinc-100">
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="INR">INR (₹)</option>
+              <option value="GBP">GBP (£)</option>
+              <option value="JPY">JPY (¥)</option>
+            </select>
           </div>
           <button type="submit" className="mt-2 bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2 font-semibold transition-colors">Add Trade</button>
         </form>
