@@ -9,6 +9,19 @@ const currencySymbols: Record<string, string> = {
   JPY: '¥',
 };
 
+type Trade = {
+  stock: string;
+  entry: string;
+  exit: string;
+  qty: string;
+  type: 'long' | 'short';
+  pnl: string;
+  date: string;
+  time: string;
+  imgUrl: string | null;
+  currency: string;
+};
+
 export default function TradesPage() {
   const [stock, setStock] = React.useState("");
   const [entry, setEntry] = React.useState("");
@@ -19,7 +32,7 @@ export default function TradesPage() {
   const [imgUrl, setImgUrl] = React.useState<string | null>(null);
   const [dateStr, setDateStr] = React.useState('');
   const [timeStr, setTimeStr] = React.useState('');
-  const [trades, setTrades] = React.useState<any[]>([]);
+  const [trades, setTrades] = React.useState<Trade[]>([]);
   const [currency, setCurrency] = React.useState('USD');
 
   React.useEffect(() => {
